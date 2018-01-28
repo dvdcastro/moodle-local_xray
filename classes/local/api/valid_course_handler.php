@@ -80,7 +80,7 @@ class valid_course_handler {
     public function get_valid_course_list() {
         global $DB;
         if ($this->validcourselist === null) {
-            if (!defined('XRAY_OMIT_CACHE')) {
+            if (!defined('PHPUNIT_TEST') && !defined('XRAY_OMIT_CACHE')) {
                 define('XRAY_OMIT_CACHE', true);
             }
             $wsapires = wsapi::validcourses();

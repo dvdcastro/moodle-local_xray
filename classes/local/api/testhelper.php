@@ -42,6 +42,12 @@ abstract class testhelper {
      */
     protected static $fixturestash = [];
 
+
+    /**
+     * @var array
+     */
+    protected static $memstash = [];
+
     /**
      * @param  string $rpath
      * @param  string $name
@@ -71,6 +77,8 @@ abstract class testhelper {
         $filename = self::generate_name($url);
         if (!empty($filename)) {
             $result = self::load_data($CFG->dirroot.'/local/xray/tests/fixtures/', $filename);
+        } else if (!empty(self::$memstash[$url])) {
+            $result = self::$memstash[$url];
         }
         return $result;
     }
@@ -82,6 +90,15 @@ abstract class testhelper {
      */
     public static function push_pair($url, $filename) {
         self::$fixturestash[$url] = $filename;
+    }
+
+    /**
+     * @param string $url
+     * @param string $contents
+     * @return void
+     */
+    public static function push_to_mem($url, $contents) {
+        self::$memstash[$url] = $contents;
     }
 
     /**

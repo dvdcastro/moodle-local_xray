@@ -58,17 +58,19 @@ abstract class course_manager {
             return true;
         }
 
-        $xraycourse = self::get_xray_courses(null, $courseid);
+        $checkifvalid = false;
+        $xraycourse = self::get_xray_courses(null, $courseid, $checkifvalid);
         return $xraycourse['checked'];
     }
 
     /**
      * Retrieves the xray courses for the specified category id or a specific course for the specified course id.
-     * @param int|string $categoryid Category id or 'all'
+     * @param int|string|null $categoryid Category id or 'all'
      * @param int $courseid
-     * @return \stdClass[]|\stdClass Array of courses or single course that has all course information and selection status
+     * @param bool $checkifvalid Check if the courses are valid in XRF
+     * @return array Array of courses or single course that has all course information and selection status
      */
-    public static function get_xray_courses($categoryid = 'all', $courseid = null) {
+    public static function get_xray_courses($categoryid = 'all', $courseid = null, $checkifvalid = true) {
         global $CFG, $DB;
         if ((is_null($categoryid) && is_null($courseid)) || $categoryid === 0) {
             return array();
@@ -76,17 +78,19 @@ abstract class course_manager {
 
         $res = array();
         $wherequery = '';
-        $validcourseids = valid_course_handler::instance()->get_valid_course_list_as_string();
-        if (!empty($validcourseids)) {
-            $wherequery .= 'WHERE mdc.id IN ('.$validcourseids.')';
-        } else {
-            return self::process_xray_courses_response($courseid, $res);
+        if ($checkifvalid) {
+            $validcourseids = valid_course_handler::instance()->get_valid_course_list_as_string();
+            if (!empty($validcourseids)) {
+                $wherequery .= 'WHERE mdc.id IN ('.$validcourseids.')';
+            } else {
+                return self::process_xray_courses_response($courseid, $res);
+            }
         }
 
         if (!is_null($categoryid) && $categoryid !== 'all') {
-            $wherequery .= ' AND mdc.category = :categoryid';
+            $wherequery .= (empty($wherequery) ? 'WHERE ' : ' AND ').'mdc.category = :categoryid';
         } else if (!is_null($courseid)) {
-            $wherequery .= ' AND mdc.id = :courseid';
+            $wherequery .= (empty($wherequery) ? 'WHERE ' : ' AND ').'mdc.id = :courseid';
         }
 
         list($inoreqsql, $params) = $DB->get_in_or_equal(explode(',', $CFG->gradebookroles), SQL_PARAMS_NAMED, 'grbr0');
@@ -125,7 +129,7 @@ abstract class course_manager {
     /**
      * @param null|int $courseid
      * @param array $res
-     * @return \stdClass[]|\stdClass Array of courses or single course that has all course information and selection status
+     * @return array Array of courses or single course that has all course information and selection status
      */
     private static function process_xray_courses_response($courseid = null, $res) {
         if (is_null($courseid)) {
@@ -414,7 +418,7 @@ abstract class course_manager {
             \local_xray\event\course_selection_removed::create($remeventdata)->trigger();
         }
         // Save courses to X-Ray as well.
-        if (!defined('BEHAT_SITE_RUNNING')) {
+        if (!defined('PHPUNIT_TEST') && !defined('BEHAT_SITE_RUNNING')) {
             self::save_courses_to_xray();
         }
     }
